@@ -1,49 +1,37 @@
 var express = require('express');
-var createError = require('http-errors');
+var path = require('path');
+var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var cors = require('cors');
-
-var db = require('./config/db');
-
-var carRouter = require('./app/routers/cars');
-var indexRouter = require('./app/routers/index');
 
 var app = express();
 
-db(); // Connect to the DB.
+// Database connection
+require('./config/db');
 
-app.use(cors()); // CORS for all clients
-app.use(express.json()) // for parsing application/json
-app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
-app.use(logger('dev')); // Log in the terminal
+// Routers
+var carsRouter = require('./routes/cars');
 
-// Set up the routers
-app.use('/', indexRouter);
-app.use('/api/cars', carRouter);
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// Default route
+app.get('/', (req, res) => {
+  res.json({ message: "Welcome to the Midterm Application" });
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// Cars API route
+app.use('/cars', carsRouter);
 
-  // render the error json
-  res.status(err.status || 500);
-  res.json(
-    {
-      success: false,
-      message: err.message
-    }
-  );
+// Error handler
+app.use(function (err, req, res, next) {
+  console.error(err);
+
+  res.status(500).json({
+    success: false,
+    message: err.message || "Internal Server Error"
+  });
 });
 
-// Initialize the server
-var port = process.env.PORT || 3000;
-app.listen(port);
-
-console.log(`Server running at http://localhost:${port}/`);
+module.exports = app;
